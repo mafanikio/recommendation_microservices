@@ -23,6 +23,7 @@ redis_client = redis.Redis(
 
 class UserData(BaseModel):
     """Model for user data."""
+
     user_id: int
     name: str
     age: int
@@ -33,6 +34,7 @@ class UserData(BaseModel):
 
 class PurchaseData(BaseModel):
     """Model for purchase data."""
+
     purchase_id: int
     product_id: int
     user_id: int
@@ -43,6 +45,7 @@ class PurchaseData(BaseModel):
 
 class ItemData(BaseModel):
     """Model for item data."""
+
     product_id: int
     category: str
     product_name: str
@@ -113,7 +116,7 @@ async def get_user(user_id: int):
     if cached_data:
         logger.info(f"Cache hit for user_id: {user_id}")
         return cached_data
-    
+
     user_data = await db.users.find_one({"user_id": user_id})
     if user_data:
         await _cache_data(cache_key, user_data)
@@ -173,7 +176,7 @@ async def get_purchase(purchase_id: int):
     if cached_data:
         logger.info(f"Cache hit for purchase_id: {purchase_id}")
         return cached_data
-    
+
     purchase_data = await db.purchases.find_one({"purchase_id": purchase_id})
     if purchase_data:
         await _cache_data(cache_key, purchase_data)
@@ -235,23 +238,19 @@ async def get_interactions():
                 "from": "users",
                 "localField": "user_id",
                 "foreignField": "user_id",
-                "as": "user_data"
+                "as": "user_data",
             }
         },
-        {
-            "$unwind": "$user_data"
-        },
+        {"$unwind": "$user_data"},
         {
             "$lookup": {
                 "from": "items",
                 "localField": "product_id",
                 "foreignField": "product_id",
-                "as": "item_data"
+                "as": "item_data",
             }
         },
-        {
-            "$unwind": "$item_data"
-        },
+        {"$unwind": "$item_data"},
         {
             "$project": {
                 "_id": 0,
@@ -267,15 +266,15 @@ async def get_interactions():
                 "description": "$item_data.description",
                 "tags": "$item_data.tags",
             }
-        }
+        },
     ]
-    
+
     cursor = db.purchases.aggregate(pipeline)
     data = await cursor.to_list(length=None)
-    
+
     def generate():
         yield "user_id;name;age;gender;location;preferences;product_id;category;product_name;description;tags\n"
         for item in data:
-            yield ';'.join(map(str, item.values())) + '\n'
-    
+            yield ";".join(map(str, item.values())) + "\n"
+
     return StreamingResponse(generate(), media_type="text/csv")

@@ -48,7 +48,7 @@ async def get_api_key(
 
 @app.get("/recommendations/{user_id}")
 async def get_recommendations(
-    user_id: int, num_recommendations: int = 5,  # _api_key: str = Depends(get_api_key)
+    user_id: int, num_recommendations: int = 5, _api_key: str = Depends(get_api_key)
 ) -> RecommendationResponse:
     """
     Get cached recommendations for a user if exists, otherwise fetch from
@@ -63,11 +63,11 @@ async def get_recommendations(
     """
     cache_key = f"user_recommendations:{user_id}"
     cached_recommendations = redis_client.get(cache_key)
-    
+
     if cached_recommendations:
         logger.info("Cache hit for user_id: {}", user_id)
         return json.loads(cached_recommendations)
-    
+
     async with httpx.AsyncClient() as client:
         try:
             response = await client.get(

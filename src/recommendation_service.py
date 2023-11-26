@@ -18,6 +18,7 @@ app = FastAPI()
 
 class RecommendationResponse(BaseModel):
     """Model for recommendation response."""
+
     user_id: int
     recommendations: list[dict[str, str | int]]
 
@@ -35,10 +36,12 @@ async def fetch_data() -> pd.DataFrame:
         response = await client.get(full_url)
         response.raise_for_status()
         csv_data = response.text
-        return pd.read_csv(io.StringIO(csv_data), sep=';')
+        return pd.read_csv(io.StringIO(csv_data), sep=";")
 
 
-def create_user_profile(user_id: int, user_data: pd.DataFrame, tfidf_vectorizer: TfidfVectorizer) -> np.ndarray:
+def create_user_profile(
+    user_id: int, user_data: pd.DataFrame, tfidf_vectorizer: TfidfVectorizer
+) -> np.ndarray:
     """Create a user profile based on their interactions.
 
     Args:
@@ -52,7 +55,7 @@ def create_user_profile(user_id: int, user_data: pd.DataFrame, tfidf_vectorizer:
     user_interactions = user_data[user_data["user_id"] == user_id]
     user_features = tfidf_vectorizer.transform(user_interactions["combined_features"])
     user_profile = user_features.mean(axis=0)
-    
+
     if isinstance(user_profile, np.matrix):
         return np.asarray(user_profile)
     else:
@@ -60,8 +63,11 @@ def create_user_profile(user_id: int, user_data: pd.DataFrame, tfidf_vectorizer:
 
 
 def recommend_content_based(
-    user_profile: np.ndarray, tfidf_matrix: np.ndarray, top_recommendations: int,
-    unique_combined_features: np.ndarray, product_mapping: dict[str, int]
+    user_profile: np.ndarray,
+    tfidf_matrix: np.ndarray,
+    top_recommendations: int,
+    unique_combined_features: np.ndarray,
+    product_mapping: dict[str, int],
 ) -> list[dict[str, str]]:
     """Recommend products to a user based on content-based filtering.
 
@@ -77,12 +83,12 @@ def recommend_content_based(
     """
     similarities = linear_kernel(user_profile, tfidf_matrix)
     similar_indices = similarities.argsort()[0][-top_recommendations:][::-1]
-    
+
     recommended_products = [
         {"id": product_mapping[unique_combined_features[i]], "name": unique_combined_features[i]}
         for i in similar_indices
     ]
-    
+
     return recommended_products
 
 
@@ -99,18 +105,20 @@ async def content_recommend(user_id: int, top_recommendations: int = 5):
         RecommendationResponse: Recommendation response.
     """
     user_data = await fetch_data()
-    
+
     # Processing product features (category and tags)
     user_data["combined_features"] = user_data["category"] + " " + user_data["tags"]
     tfidf_vectorizer = TfidfVectorizer(stop_words="english")
     tfidf_matrix = tfidf_vectorizer.fit_transform(user_data["combined_features"].unique())
     unique_combined_features = user_data["combined_features"].unique()
-    
+
     # Create a mapping from combined features to product IDs
-    product_mapping = {row["combined_features"]: row["product_id"] for index, row in user_data.iterrows()}
-    
+    product_mapping = {
+        row["combined_features"]: row["product_id"] for index, row in user_data.iterrows()
+    }
+
     user_profile = create_user_profile(user_id, user_data, tfidf_vectorizer)
-    
+
     # Recommend products based on the user profile
     recommended_products = recommend_content_based(
         user_profile, tfidf_matrix, top_recommendations, unique_combined_features, product_mapping

@@ -1,0 +1,66 @@
+version: '3.11'
+services:
+  user_service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: python -m uvicorn user_service:app --host 0.0.0.0 --port 8002
+    environment:
+      - MONGO_URI=${MONGO_URI}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - REDIS_DB=0
+      - DATASET_FILE_PATH=/data/${DATASET_FILE_PATH}
+    volumes:
+      - ./src:/usr/src/app
+      - ./${DATASET_FILE_PATH}:/data/${DATASET_FILE_PATH}
+    depends_on:
+      - mongo
+      - redis
+
+  recommendation_service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: python -m uvicorn recommendation_service:app --host 0.0.0.0 --port 8001
+    environment:
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - REDIS_DB=1
+      - USER_DATA_SERVICE_URL=${USER_DATA_SERVICE_URL}
+    volumes:
+      - ./src:/usr/src/app
+    depends_on:
+      - redis
+
+  client_service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: python -m uvicorn client_service:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    environment:
+      - RECOMMENDATION_SERVICE_URL=${RECOMMENDATION_SERVICE_URL}
+      - USER_DATA_SERVICE_URL=${USER_DATA_SERVICE_URL}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - REDIS_DB=2
+      - API_KEY=${API_KEY}
+    volumes:
+      - ./src:/usr/src/app
+    depends_on:
+      - recommendation_service
+      - user_service
+      - redis
+
+  mongo:
+    image: mongo:latest
+    volumes:
+      - mongo-data:/data/db
+
+  redis:
+    image: redis:latest
+
+volumes:
+  mongo-data:

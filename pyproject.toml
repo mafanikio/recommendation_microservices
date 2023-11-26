@@ -1,0 +1,42 @@
+[tool.poetry]
+name = "assessement"
+version = "0.1.0"
+description = ""
+authors = ["Artem <artem.n@elsewhen.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.104.1"
+uvicorn = "^0.24.0.post1"
+pandas = "^2.1.3"
+pip = "^23.3.1"
+numpy = "^1.26.2"
+cython = "^3.0.5"
+httpx = "^0.25.1"
+motor = "^3.3.2"
+redis = "^5.0.1"
+loguru = "^0.7.2"
+python-dotenv = "^1.0.0"
+scikit-learn = "^1.3.2"
+
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.11.0"
+ruff = "^0.1.6"
+pyright = "^1.1.337"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+fix = true
+ignore = ["E501"]
+select = ["I", "E", "W", "F", "C4"]
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
